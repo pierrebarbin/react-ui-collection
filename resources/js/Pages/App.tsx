@@ -1,17 +1,18 @@
 import { Head } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { NumberIncrease, NumberInput, NumberRoot } from '@/Components/number';
+import { NumberButton, NumberInput, NumberRoot } from '@/Components/number';
+import AppLayout from '@/Layouts/app-layout';
 
 export default function App({ }: PageProps) {
     return (
-        <>
+        <AppLayout>
             <Head title="Welcome" />
-            <NumberRoot>
-                <NumberIncrease>
+            <NumberRoot onValueChange={(value) => console.log(value)}>
+                <NumberButton offset={0.1}>
                     TEst
-                </NumberIncrease>
+                </NumberButton>
                 <NumberInput />
             </NumberRoot>
-        </>
+        </AppLayout>
     );
 }

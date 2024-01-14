@@ -4,11 +4,11 @@ import { Input, InputProps } from "./ui/input";
 import { Button, ButtonProps } from "./ui/button";
 
 type NumberContextType = {
-    display: string,
-    setDisplay: any
+    value: number,
+    setValue: React.Dispatch<React.SetStateAction<number>>|null
 }
 
-const NumberContext = React.createContext<NumberContextType>({display: "", setDisplay: null});
+const NumberContext = React.createContext<NumberContextType>({value: 1, setValue: null});
 
 const useNumber = () => {
     const numberContext = React.useContext(NumberContext)
@@ -20,8 +20,15 @@ const useNumber = () => {
     }
 
     return numberContext
-  }
+}
 
+function convertToNumber(value: string) {
+    return parseFloat(value)
+}
+
+function convertToString(value: number) {
+    return value.toString()
+}
 
 
 interface NumberRootProps {
@@ -30,16 +37,16 @@ interface NumberRootProps {
 }
 
 const NumberRoot = ({children, onValueChange}: NumberRootProps) => {
-    const [display, setDisplay] = React.useState("1")
+    const [value, setValue] = React.useState(1)
 
     React.useEffect(() => {
         if (onValueChange) {
-            onValueChange(parseFloat(display))
+            onValueChange(value)
         }
-    }, [onValueChange])
+    }, [onValueChange, value])
 
     return (
-        <NumberContext.Provider value={{display, setDisplay}}>
+        <NumberContext.Provider value={{value, setValue}}>
             {children}
         </NumberContext.Provider>
     )
@@ -49,14 +56,13 @@ NumberRoot.displayName = "NumberRoot"
 const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
     ({value, onChange, ...props }, ref) => {
 
-        const localValue = value ?? useNumber().display
-        const setDisplay = onChange ?? useNumber().setDisplay
+        const localValue = value ?? useNumber().value
+        const setValue = useNumber().setValue
 
-        const changeDisplay = (e: React.ChangeEvent<HTMLInputElement>) => {
-            setDisplay(e.target.value)
+        const onChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
+            setValue && setValue(convertToNumber(e.target.value))
+            onChange && onChange(e)
         }
-
-        const onChanged = onChange ?? changeDisplay
 
         return (
             <Input
@@ -70,17 +76,31 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
 )
 NumberInput.displayName = "Input"
 
-const NumberIncrease = React.forwardRef<HTMLButtonElement, ButtonProps>(
-        ({ children, onClick, ...props }, ref) => {
+interface NumberButtonProps extends ButtonProps {
+    order?: "increase"|"decrease"
+    offset?: number
+}
 
-            const display = children ?? useNumber().display
-            const setDisplay = onClick ?? useNumber().setDisplay
+const NumberButton = React.forwardRef<HTMLButtonElement, NumberButtonProps>(
+        ({ children, onClick, order = "increase", offset = 1, ...props }, ref) => {
 
-            const changeDisplay = (e: React.MouseEvent<HTMLButtonElement>) => {
-                setDisplay((display) => (parseFloat(display) + 1).toString())
+            const value = children ?? convertToString(useNumber().value)
+            const setValue = useNumber().setValue
+
+            const onClicked = (e: React.MouseEvent<HTMLButtonElement>) => {
+                setValue && setValue((value) => {
+                    if (order === "increase") {
+                        return value + offset
+                    }
+
+                    if (order === "decrease") {
+                        return value - offset
+                    }
+
+                    return value
+                })
+                onClick && onClick(e)
             }
-
-            const onClicked = onClick ?? changeDisplay
 
             return (
                 <Button
@@ -88,11 +108,11 @@ const NumberIncrease = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     {...props}
                     onClick={onClicked}
                 >
-                    {display}
+                    {value}
                 </Button>
             )
         }
   )
-NumberIncrease.displayName = "NumberIncrease"
+NumberButton.displayName = "NumberIncrease"
 
-export {NumberRoot, NumberInput, NumberIncrease, useNumber}
+export {NumberRoot, NumberInput, NumberButton, useNumber}

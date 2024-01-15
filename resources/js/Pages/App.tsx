@@ -8,7 +8,7 @@ export default function App({ }: PageProps) {
         <AppLayout>
             <Head title="Welcome" />
             <NumberRoot onValueChange={(value) => console.log(value)}>
-                <NumberButton offset={0.1}>
+                <NumberButton offset={0.11}>
                     TEst
                 </NumberButton>
                 <NumberInput />

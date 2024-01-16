@@ -64,7 +64,15 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
         const {value: localValue, setValue, convertToNumber} = useNumber()
 
         const onChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-            setValue && setValue(convertToNumber(e.target.value))
+            setValue && setValue((oldValue) => {
+                const value = convertToNumber(e.target.value)
+
+                if (Number.isNaN(value)) {
+                    return oldValue
+                }
+
+                return value
+            })
             onChange && onChange(e)
         }
 

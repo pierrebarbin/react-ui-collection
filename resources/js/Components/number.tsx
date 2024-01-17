@@ -2,6 +2,7 @@ import React from "react";
 
 import { Input, InputProps } from "./ui/input";
 import { Button, ButtonProps } from "./ui/button";
+import { Slot } from "@radix-ui/react-slot";
 
 type NumberContextType = {
     value: number,
@@ -35,7 +36,7 @@ const useNumber = () => {
     return {...numberContext, convertToNumber, convertToString}
 }
 
-interface NumberRootProps {
+export interface NumberRootProps {
  children: React.ReactElement|React.ReactElement[]
  onValueChange?: (value: number) => void
  digits?: number
@@ -88,15 +89,15 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
 )
 NumberInput.displayName = "Input"
 
-interface NumberButtonProps extends ButtonProps {
+export interface NumberActionProps extends ButtonProps {
     order?: "increase"|"decrease"
     offset?: number
 }
 
-const NumberButton = React.forwardRef<HTMLButtonElement, NumberButtonProps>(
-        ({ children, onClick, order = "increase", offset = 1, ...props }, ref) => {
+const NumberAction = React.forwardRef<HTMLButtonElement, NumberActionProps>(
+        ({ onClick, order = "increase", offset = 1, ...props }, ref) => {
 
-            const {value: display, setValue, convertToString, convertToNumber} = useNumber()
+            const {setValue, convertToNumber} = useNumber()
 
             const onClicked = (e: React.MouseEvent<HTMLButtonElement>) => {
                 setValue && setValue((value) => {
@@ -114,16 +115,14 @@ const NumberButton = React.forwardRef<HTMLButtonElement, NumberButtonProps>(
             }
 
             return (
-                <Button
+                <Slot
                     ref={ref}
                     {...props}
                     onClick={onClicked}
-                >
-                    {children ?? convertToString(display)}
-                </Button>
+                />
             )
         }
   )
-NumberButton.displayName = "NumberIncrease"
+NumberAction.displayName = "NumberIncrease"
 
-export {NumberRoot, NumberInput, NumberButton, useNumber}
+export {NumberRoot, NumberInput, NumberAction, useNumber}

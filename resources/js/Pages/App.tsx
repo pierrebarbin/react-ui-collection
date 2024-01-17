@@ -1,14 +1,24 @@
 import { Head } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { NumberButton, NumberInput, NumberRoot } from '@/Components/number';
 import AppLayout from '@/Layouts/app-layout';
-import { InputNumber } from '@/Components/input-number';
+import { InputNumber, InputNumberDecrease, InputNumberIncrease, InputNumberInput } from '@/Components/input-number';
 
 export default function App({ }: PageProps) {
     return (
         <AppLayout>
             <Head title="Welcome" />
-            <InputNumber />
+            <div className="space-y-6">
+                <InputNumber>
+                    <InputNumberDecrease />
+                    <InputNumberInput />
+                    <InputNumberIncrease />
+                </InputNumber>
+                <InputNumber className="relative">
+                    <InputNumberInput className="w-auto text-left rounded"/>
+                    <InputNumberDecrease className="absolute right-[45px] rounded top-1/2 -translate-y-1/2 z-20" />
+                    <InputNumberIncrease className="absolute right-[3px] rounded top-1/2 -translate-y-1/2 z-20" />
+                </InputNumber>
+            </div>
         </AppLayout>
     );
 }

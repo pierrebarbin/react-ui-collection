@@ -8,7 +8,7 @@ export default function App({ }: PageProps) {
         <AppLayout>
             <Head title="Welcome" />
             <div className="space-y-6">
-                <InputNumber onValueChange={(value) => console.log({value})} digits={3}>
+                <InputNumber onValueChange={(value) => console.log({value})} digits={3} only="negative">
                     <InputNumberDecrease />
                     <InputNumberInput />
                     <InputNumberIncrease />

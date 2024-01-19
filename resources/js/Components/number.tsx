@@ -5,19 +5,21 @@ import { Button, ButtonProps } from "./ui/button";
 import { Slot } from "@radix-ui/react-slot";
 
 type NumberContextType = {
-    value: number,
+    value: number|null,
     display: string
-    setValue: React.Dispatch<React.SetStateAction<number>>|null
+    setValue: React.Dispatch<React.SetStateAction<number|null>>|null
     setDisplay: React.Dispatch<React.SetStateAction<string>>|null
     digits: number
+    only: "positive"|"negative"|"both"
 }
 
 const NumberContext = React.createContext<NumberContextType>({
-    value: 1,
-    display: "1",
+    value: 0,
+    display: "0",
     setValue: null,
     setDisplay: null,
-    digits: 2
+    digits: 2,
+    only: "both"
 });
 
 const useNumber = () => {
@@ -54,13 +56,14 @@ const useNumber = () => {
 }
 
 export interface NumberRootProps {
- children: React.ReactElement|React.ReactElement[]
- onValueChange?: (value: number) => void
- digits?: number
+    children: React.ReactElement|React.ReactElement[]
+    onValueChange?: (value: number|null) => void
+    digits?: number
+    only?: "positive"|"negative"|"both"
 }
 
-const NumberRoot = ({children, onValueChange, digits = 2}: NumberRootProps) => {
-    const [value, setValue] = React.useState(0)
+const NumberRoot = ({children, onValueChange, digits = 2, only = "both"}: NumberRootProps) => {
+    const [value, setValue] = React.useState<number|null>(0)
     const [display, setDisplay] = React.useState("0")
 
     React.useEffect(() => {
@@ -75,7 +78,8 @@ const NumberRoot = ({children, onValueChange, digits = 2}: NumberRootProps) => {
             setValue,
             digits: digits < 0 ? 0 : digits,
             display,
-            setDisplay
+            setDisplay,
+            only
         }}>
             {children}
         </NumberContext.Provider>
@@ -89,6 +93,13 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
 
         const onChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
             const value = e.target.value
+            onChange && onChange(e)
+
+            if (value === "") {
+                setDisplay && setDisplay("")
+                setValue && setValue(null)
+                return
+            }
 
             let digitsRegex = ""
             let afterDecimalRegex = ""
@@ -102,10 +113,10 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
             }
 
             if (digits >= 1) {
-                afterDecimalRegex = `(\.?([0-9]${digitsRegex})?)?`
+                afterDecimalRegex = `([.]?([0-9]${digitsRegex})?)?`
             }
 
-            const regex = new RegExp(`[0-9]*${afterDecimalRegex}`)
+            const regex = new RegExp(`-?[0-9]*${afterDecimalRegex}`)
 
             const result = regex.exec(value)
 
@@ -116,8 +127,12 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
             const isInvalid = result[0] !== result?.input
 
             setDisplay && setDisplay((oldValue) => {
-                if (value === "" || value === ".") {
-                    return "0"
+                if (value === ".") {
+                    return "0."
+                }
+
+                if (value === "-") {
+                    return "-"
                 }
 
                 if (isInvalid) {
@@ -127,8 +142,12 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
                 return convertToString(value)
             })
             setValue && setValue((oldValue) => {
-                if (value === "" || value === ".") {
+                if (value === ".") {
                     return 0
+                }
+
+                if (value === "-") {
+                    return null
                 }
 
                 if (isInvalid) {
@@ -137,7 +156,6 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
 
                 return convertToNumber(value)
             })
-            onChange && onChange(e)
         }
 
         return (
@@ -160,22 +178,30 @@ export interface NumberActionProps extends ButtonProps {
 const NumberAction = React.forwardRef<HTMLButtonElement, NumberActionProps>(
         ({ onClick, order = "increase", offset = 1, ...props }, ref) => {
 
-            const {value, setValue, setDisplay, convertToNumber, convertToString} = useNumber()
+            const {value, setValue, setDisplay, convertToNumber, convertToString, only} = useNumber()
 
             const calculate = (value: number) => {
                 if (order === "increase") {
-                    return value + offset
+                    value = value + offset
                 }
 
                 if (order === "decrease") {
-                    return value - offset
+                    value = value - offset
+                }
+
+                if (only === "positive" && value < 0) {
+                    return 0
+                }
+
+                if (only === "negative" && value > 0) {
+                    return 0
                 }
 
                 return value
             }
 
             const onClicked = (e: React.MouseEvent<HTMLButtonElement>) => {
-                const calculated = calculate(value)
+                const calculated = calculate(value ?? 0)
 
                 setValue && setValue(convertToNumber(calculated))
                 setDisplay && setDisplay(convertToString(calculated))

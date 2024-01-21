@@ -1,6 +1,6 @@
 import React from "react";
 
-import { ButtonProps } from "./ui/button";
+import { ButtonProps } from "../ui/button";
 import { Slot } from "@radix-ui/react-slot";
 
 type NumberContextType = {
@@ -9,7 +9,6 @@ type NumberContextType = {
     setValue: React.Dispatch<React.SetStateAction<number|null>>|null
     setDisplay: React.Dispatch<React.SetStateAction<string>>|null
     digits: number
-    only: "positive"|"negative"|"both"
     min: number|null
     max: number|null
 }
@@ -20,13 +19,18 @@ const NumberContext = React.createContext<NumberContextType>({
     setValue: null,
     setDisplay: null,
     digits: 2,
-    only: "both",
     min: null,
     max: null
 });
 
 const useNumber = () => {
     const numberContext = React.useContext(NumberContext)
+
+    if (!numberContext) {
+        throw new Error(
+          "useNumber has to be used within <NumberContext.Provider>"
+        )
+    }
 
     const {digits, setDisplay, setValue, min, max} = numberContext
 
@@ -54,18 +58,6 @@ const useNumber = () => {
     const updateValue = (value: string  ) => {
         if (value === "") {
             setDisplay && setDisplay("")
-            setValue && setValue(null)
-            return
-        }
-
-        if (value === ".") {
-            setDisplay && setDisplay("0.")
-            setValue && setValue(0)
-            return
-        }
-
-        if (value === "-") {
-            setDisplay && setDisplay("-")
             setValue && setValue(null)
             return
         }
@@ -102,25 +94,45 @@ const useNumber = () => {
             return
         }
 
-        const valueDisplay = convertToString(value)
-        const valueNumber = convertToNumber(value)
-
-        if (min && valueNumber < min) {
-            return min
+        if (value === ".") {
+            setDisplay && setDisplay("0.")
+            value = "0"
+            return
         }
 
-        if (max && valueNumber > max) {
+        if (value === "-") {
+            if (min !== null && 0 <= min) {
+                setDisplay && setDisplay(convertToString(min))
+                setValue && setValue(convertToNumber(min))
+                return
+            }
+            setDisplay && setDisplay("-")
+            setValue && setValue(null)
+            return
+        }
+
+        if (value === "-0" || value === "-0.") {
+            setDisplay && setDisplay(value)
+            setValue && setValue(0)
+            return
+        }
+
+        const valueNumber = convertToNumber(value)
+
+        if (min !== null && valueNumber <= min) {
+            setDisplay && setDisplay(convertToString(min))
+            setValue && setValue(convertToNumber(min))
+            return
+        }
+
+        if (max !== null && valueNumber >= max) {
+            setDisplay && setDisplay(convertToString(max))
+            setValue && setValue(convertToNumber(max))
             return max
         }
 
-        setDisplay && setDisplay(valueDisplay)
+        setDisplay && setDisplay(convertToString(value))
         setValue && setValue(valueNumber)
-    }
-
-    if (!numberContext) {
-      throw new Error(
-        "useNumber has to be used within <NumberContext.Provider>"
-      )
     }
 
     return {...numberContext, convertToNumber, convertToString, updateValue}
@@ -130,14 +142,14 @@ export interface NumberRootProps {
     children: React.ReactElement|React.ReactElement[]
     onValueChange?: (value: number|null) => void
     digits?: number
-    only?: "positive"|"negative"|"both"
     min?: number|null
     max?: number|null
+    defaultValue?: number|null
 }
 
-const NumberRoot = ({children, onValueChange, digits = 2, only = "both", min = null, max = null}: NumberRootProps) => {
-    const [value, setValue] = React.useState<number|null>(0)
-    const [display, setDisplay] = React.useState("0")
+const NumberRoot = ({children, onValueChange, digits = 2, min = null, max = null, defaultValue = null}: NumberRootProps) => {
+    const [value, setValue] = React.useState<number|null>(defaultValue)
+    const [display, setDisplay] = React.useState(defaultValue ?? "")
 
     React.useEffect(() => {
         if (onValueChange) {
@@ -152,7 +164,6 @@ const NumberRoot = ({children, onValueChange, digits = 2, only = "both", min = n
             digits: digits < 0 ? 0 : digits,
             display,
             setDisplay,
-            only,
             min,
             max
         }}>
@@ -170,7 +181,7 @@ export interface NumberActionProps extends ButtonProps {
 const NumberAction = React.forwardRef<HTMLButtonElement, NumberActionProps>(
         ({ onClick, order = "increase", offset = 1, ...props }, ref) => {
 
-            const {value, setValue, setDisplay, convertToNumber, convertToString, only} = useNumber()
+            const {value, updateValue, convertToString} = useNumber()
 
             const calculate = (value: number) => {
                 if (order === "increase") {
@@ -181,22 +192,13 @@ const NumberAction = React.forwardRef<HTMLButtonElement, NumberActionProps>(
                     value = value - offset
                 }
 
-                if (only === "positive" && value < 0) {
-                    return 0
-                }
-
-                if (only === "negative" && value > 0) {
-                    return 0
-                }
-
                 return value
             }
 
             const onClicked = (e: React.MouseEvent<HTMLButtonElement>) => {
                 const calculated = calculate(value ?? 0)
 
-                setValue && setValue(convertToNumber(calculated))
-                setDisplay && setDisplay(convertToString(calculated))
+                updateValue(convertToString(calculated))
                 onClick && onClick(e)
             }
 

@@ -1,5 +1,5 @@
 import { MinusIcon, PlusIcon } from "@radix-ui/react-icons"
-import { NumberRoot, NumberAction, NumberRootProps, NumberActionProps, useNumber } from "./number"
+import { NumberRoot, NumberAction, NumberRootProps, NumberActionProps, useNumber } from "./primitive/number"
 import React from "react"
 import { cn } from "@/lib/utils"
 import { Input, InputProps } from "./ui/input"
@@ -59,7 +59,7 @@ InputNumberDecrease.displayName = "InputNumberDecrease"
 
 const InputNumberInput = React.forwardRef<HTMLInputElement, InputProps>(
     ({ className, ...props }, ref) => {
-        const {updateValue} = useNumber()
+        const {display, updateValue} = useNumber()
 
         const change = (e: React.ChangeEvent<HTMLInputElement>) => {
             updateValue(e.target.value)
@@ -69,6 +69,7 @@ const InputNumberInput = React.forwardRef<HTMLInputElement, InputProps>(
             <Input
                 ref={ref}
                 className={cn("w-20 text-center rounded-none z-10", className)}
+                value={display}
                 onChange={change}
                 {...props}
             />

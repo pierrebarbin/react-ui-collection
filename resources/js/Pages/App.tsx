@@ -15,11 +15,11 @@ export default function App({ }: PageProps) {
                     <InputNumberIncrease />
                 </InputNumber>
                 <InputNumber className="relative">
-                    <InputNumberInput className="w-auto text-left rounded"/>
+                    <InputNumberInput className="w-full text-left rounded"/>
                     <InputNumberDecrease className="absolute right-[45px] rounded top-1/2 -translate-y-1/2 z-20" />
                     <InputNumberIncrease className="absolute right-[3px] rounded top-1/2 -translate-y-1/2 z-20" />
                 </InputNumber>
-                <InputPinCode />
+                <InputPinCode onPinEntered={(pin) => console.log(pin)} />
             </div>
         </AppLayout>
     );

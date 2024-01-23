@@ -149,13 +149,13 @@ export interface NumberRootProps {
 
 const NumberRoot = ({children, onValueChange, digits = 2, min = null, max = null, defaultValue = null}: NumberRootProps) => {
     const [value, setValue] = React.useState<number|null>(defaultValue)
-    const [display, setDisplay] = React.useState(defaultValue ?? "")
+    const [display, setDisplay] = React.useState(defaultValue?.toString() ?? "")
 
     React.useEffect(() => {
         if (onValueChange) {
             onValueChange(value)
         }
-    }, [onValueChange, value])
+    }, [value])
 
     return (
         <NumberContext.Provider value={{

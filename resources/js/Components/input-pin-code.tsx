@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react"
 import { InputNumber, InputNumberInput } from "./input-number"
 import React from "react"
+import { cn } from "@/lib/utils"
 
 type Input = {
     id: string
@@ -30,7 +31,9 @@ const useInputPinCode = () => {
     return inputPinCodeContext
 }
 
-const InputPinCodeInput = () => {
+interface InputPinCodeInputProps extends React.HTMLAttributes<HTMLInputElement> {}
+
+const InputPinCodeInput = ({className, ...props}: InputPinCodeInputProps) => {
 
     const ref = React.useRef(null)
 
@@ -69,17 +72,21 @@ const InputPinCodeInput = () => {
             min={0}
             max={9}
         >
-            <InputNumberInput ref={ref} className="focus:z-20" />
+            <InputNumberInput
+                ref={ref}
+                className={cn(className, "focus:z-20")}
+                {...props}
+            />
         </InputNumber>
     )
 }
 
-interface InputPinCodeProps {
+interface InputPinCodeProps extends React.HTMLAttributes<HTMLDivElement> {
     digits?: number
     onPinEntered?: (pin: string) => void
 }
 
-const InputPinCode = ({ digits = 4, onPinEntered }: InputPinCodeProps) => {
+const InputPinCode = ({ children, className, digits = 4, onPinEntered, ...props }: InputPinCodeProps) => {
     const [inputs, setInputs] = useState<Array<Input>>([])
 
     useEffect(() => {
@@ -94,14 +101,12 @@ const InputPinCode = ({ digits = 4, onPinEntered }: InputPinCodeProps) => {
 
     return (
         <InputPinCodeContext.Provider value={{inputs, setInputs}}>
-            <div className="flex">
-                {[...Array(digits).keys()].map((input) => (
-                    <InputPinCodeInput key={input} />
-                ))}
+            <div className={cn(className, "flex")} {...props}>
+                {children}
             </div>
         </InputPinCodeContext.Provider>
     )
 }
 InputPinCode.displayName = "InputPinCode"
 
-export {InputPinCode}
+export {InputPinCode, InputPinCodeInput}

@@ -11,6 +11,7 @@ type NumberContextType = {
     digits: number
     min: number|null
     max: number|null
+    onValueChange?: (value: number|null) => void
 }
 
 const NumberContext = React.createContext<NumberContextType>({
@@ -20,7 +21,8 @@ const NumberContext = React.createContext<NumberContextType>({
     setDisplay: null,
     digits: 2,
     min: null,
-    max: null
+    max: null,
+    onValueChange: undefined
 });
 
 const useNumber = () => {
@@ -32,7 +34,14 @@ const useNumber = () => {
         )
     }
 
-    const {digits, setDisplay, setValue, min, max} = numberContext
+    const {
+        min,
+        max,
+        digits,
+        setDisplay,
+        setValue,
+        onValueChange
+    } = numberContext
 
     const convertToNumber = (value: number|string) => {
         if (typeof value === 'string') {
@@ -55,13 +64,18 @@ const useNumber = () => {
         return value.toString()
     }
 
-    const updateValue = (value: string  ) => {
+
+    const renderValue = ({value, display}: {value: number|null, display: string}) => {
+        setDisplay && setDisplay(display)
+        setValue && setValue(value)
+        onValueChange && onValueChange(value)
+    }
+
+    const updateValue = (value: string ) => {
         if (value === "") {
-            setDisplay && setDisplay("")
-            setValue && setValue(null)
+            renderValue({value: null, display: ""})
             return
         }
-
 
         let digitsRegex = ""
         let afterDecimalRegex = ""
@@ -90,49 +104,63 @@ const useNumber = () => {
 
         if (isInvalid) {
             setDisplay && setDisplay((old) => old)
-            setValue && setValue((old) => old)
+            setValue && setValue((old) => {
+                onValueChange && onValueChange(old)
+                return old
+            })
             return
         }
 
         if (value === ".") {
-            setDisplay && setDisplay("0.")
-            value = "0"
+            renderValue({value: 0, display: ""})
             return
         }
 
         if (value === "-") {
             if (min !== null && 0 <= min) {
-                setDisplay && setDisplay(convertToString(min))
-                setValue && setValue(convertToNumber(min))
+                renderValue({
+                    value: convertToNumber(min),
+                    display: convertToString(min)
+                })
                 return
             }
-            setDisplay && setDisplay("-")
-            setValue && setValue(null)
+            renderValue({
+                value: null,
+                display: "-"
+            })
             return
         }
 
         if (value === "-0" || value === "-0.") {
-            setDisplay && setDisplay(value)
-            setValue && setValue(0)
+            renderValue({
+                value: 0,
+                display: value
+            })
             return
         }
 
         const valueNumber = convertToNumber(value)
 
         if (min !== null && valueNumber <= min) {
-            setDisplay && setDisplay(convertToString(min))
-            setValue && setValue(convertToNumber(min))
+            renderValue({
+                value: convertToNumber(min),
+                display: convertToString(min)
+            })
             return
         }
 
         if (max !== null && valueNumber >= max) {
-            setDisplay && setDisplay(convertToString(max))
-            setValue && setValue(convertToNumber(max))
-            return max
+            renderValue({
+                value: convertToNumber(max),
+                display: convertToString(max)
+            })
+            return
         }
 
-        setDisplay && setDisplay(convertToString(value))
-        setValue && setValue(valueNumber)
+        renderValue({
+            value: valueNumber,
+            display: convertToString(value)
+        })
     }
 
     return {...numberContext, convertToNumber, convertToString, updateValue}
@@ -151,21 +179,16 @@ const NumberRoot = ({children, onValueChange, digits = 2, min = null, max = null
     const [value, setValue] = React.useState<number|null>(defaultValue)
     const [display, setDisplay] = React.useState(defaultValue?.toString() ?? "")
 
-    React.useEffect(() => {
-        if (onValueChange) {
-            onValueChange(value)
-        }
-    }, [value])
-
     return (
         <NumberContext.Provider value={{
-            value,
-            setValue,
-            digits: digits < 0 ? 0 : digits,
-            display,
-            setDisplay,
             min,
-            max
+            max,
+            value,
+            display,
+            digits: digits < 0 ? 0 : digits,
+            setValue,
+            setDisplay,
+            onValueChange
         }}>
             {children}
         </NumberContext.Provider>
@@ -211,6 +234,6 @@ const NumberAction = React.forwardRef<HTMLButtonElement, NumberActionProps>(
             )
         }
   )
-NumberAction.displayName = "NumberIncrease"
+NumberAction.displayName = "NumberAction"
 
 export {NumberRoot, NumberAction, useNumber}

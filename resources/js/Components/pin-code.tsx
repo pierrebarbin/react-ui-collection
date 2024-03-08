@@ -2,19 +2,23 @@ import { InputNumber, InputNumberInput } from "./input-number"
 import React from "react"
 import { cn } from "@/lib/utils"
 
-type Input = {
+interface Input {
     id: string
     ref: React.RefObject<HTMLInputElement>
     value: number|null
 }
 
-type PinCodeContextType = {
+interface focusPreviousOptions {
+    removeValue: boolean
+}
+
+interface PinCodeContextType {
     inputs: Input[],
     setInputs: React.Dispatch<React.SetStateAction<Array<Input>>>|null
     handleChange: (value: number|null, id: string) => void
     focusInput: (id: string) => void
     focusNext: () => void
-    focusPrevious: () => void
+    focusPrevious: (options?: focusPreviousOptions) => void
 }
 
 const PinCodeContext = React.createContext<PinCodeContextType>({
@@ -41,10 +45,14 @@ const usePinCode = () => {
 interface PinCodeInputProps extends React.HTMLAttributes<HTMLInputElement> {}
 
 const PinCodeInput = ({className, ...props}: PinCodeInputProps) => {
+    const [direction, setDirection] = React.useState("next")
+    const [value, setValue] = React.useState<number|null>(null)
+
     const ref = React.useRef(null)
 
     const id = React.useId()
     const {
+        inputs,
         setInputs,
         handleChange,
         focusInput,
@@ -59,22 +67,67 @@ const PinCodeInput = ({className, ...props}: PinCodeInputProps) => {
         }
     }, [])
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.code === "Backspace") {
-            focusPrevious()
+    React.useEffect(() => {
+        if (direction === "previous") {
+            focusPrevious({removeValue: true})
         }
+    }, [direction])
+
+    React.useEffect(() => {
+        if (value && direction === "next") {
+            focusNext()
+        }
+    }, [value, direction])
+
+    React.useEffect(() => {
+        const input = inputs.find((input) => input.id === id)
+
+        if (input && input.value !== value) {
+            setInputs && setValue(input.value)
+        }
+    }, [inputs, value])
+
+    const handleFocus = () => {
+        focusInput(id)
+        setDirection("next")
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "ArrowLeft") {
+            focusPrevious()
+            return
+        }
+
+        if (e.key === "ArrowRight") {
+            focusNext()
+            return
+        }
+
+        if (e.key === "Backspace" && value === null ) {
+            e.preventDefault()
+            setDirection("previous")
+            return
+        }
+        setDirection("next")
     }
 
     return (
         <InputNumber
-            onValueChange={(value) => handleChange(value, id)}
+            onValueChange={(newValue) => {
+                handleChange(newValue, id)
+                setValue(newValue)
+            }}
+            value={value}
             digits={0}
             min={0}
             max={9}
+            ignoreOverflow
         >
             <InputNumberInput
                 ref={ref}
-                onFocus={() => focusInput(id)}
+                value={value}
+                onFocus={handleFocus}
+                onKeyDown={handleKeyDown}
                 className={cn(className, "focus:z-20")}
                 {...props}
             />
@@ -109,17 +162,34 @@ const PinCode = ({ children, className, digits = 4, onCompletion, ...props }: Pi
         })
     }
 
-    const focusPrevious = () => {
+    const focusPrevious = (options: focusPreviousOptions|undefined) => {
+        let id: string|null = null
+
         inputs.forEach((input, i) => {
             if (input.id !== focusedInput?.id) {
-                return
+                return input
             }
 
             const previousInput = inputs[i - 1]
 
-            if (previousInput) {
-                previousInput.ref.current?.focus()
+            if (previousInput && previousInput.ref.current) {
+                id = previousInput.id
+                const current = previousInput.ref.current
+                current.focus()
             }
+        })
+
+        setInputs((inputs) => {
+            return inputs.map((input, i) => {
+                if (input.id !== id) {
+                    return input
+                }
+
+                return {
+                    ...input,
+                    ...(options?.removeValue ? {value: null} : {})
+                }
+            })
         })
     }
 
@@ -130,12 +200,14 @@ const PinCode = ({ children, className, digits = 4, onCompletion, ...props }: Pi
             return
         }
 
+        focusedInput?.ref.current?.blur()
+
         onCompletion && onCompletion(inputs.reduce((acc, input) => `${acc}${input.value}`, ""))
     }
 
     const handleChange = (value: number|null, id: string) => {
         setInputs && setInputs((inputs) => {
-            const newInputs = inputs.map((input, i) => {
+            const newInputs = inputs.map((input) => {
                 if (input.id === id) {
                     return {
                         ...input,
@@ -150,7 +222,12 @@ const PinCode = ({ children, className, digits = 4, onCompletion, ...props }: Pi
             return newInputs
         })
 
-        focusNext()
+        setFocusedInput((input) => {
+            if (!input) {
+                return null
+            }
+            return {...input, value}
+        })
     }
 
     return (

@@ -12,6 +12,7 @@ type NumberContextType = {
     min: number|null
     max: number|null
     onValueChange?: (value: number|null) => void
+    ignoreOverflow?: boolean
 }
 
 const NumberContext = React.createContext<NumberContextType>({
@@ -22,7 +23,8 @@ const NumberContext = React.createContext<NumberContextType>({
     digits: 2,
     min: null,
     max: null,
-    onValueChange: undefined
+    onValueChange: undefined,
+    ignoreOverflow: false
 });
 
 const useNumber = () => {
@@ -38,6 +40,7 @@ const useNumber = () => {
         min,
         max,
         digits,
+        ignoreOverflow,
         setDisplay,
         setValue,
         onValueChange
@@ -142,6 +145,9 @@ const useNumber = () => {
         const valueNumber = convertToNumber(value)
 
         if (min !== null && valueNumber <= min) {
+            if (ignoreOverflow) {
+                return
+            }
             renderValue({
                 value: convertToNumber(min),
                 display: convertToString(min)
@@ -150,6 +156,9 @@ const useNumber = () => {
         }
 
         if (max !== null && valueNumber >= max) {
+            if (ignoreOverflow) {
+                return
+            }
             renderValue({
                 value: convertToNumber(max),
                 display: convertToString(max)
@@ -173,9 +182,10 @@ export interface NumberRootProps {
     min?: number|null
     max?: number|null
     defaultValue?: number|null
+    ignoreOverflow?: boolean
 }
 
-const NumberRoot = ({children, onValueChange, digits = 2, min = null, max = null, defaultValue = null}: NumberRootProps) => {
+const NumberRoot = ({children, onValueChange, digits = 2, min = null, max = null, defaultValue = null, ignoreOverflow = false}: NumberRootProps) => {
     const [value, setValue] = React.useState<number|null>(defaultValue)
     const [display, setDisplay] = React.useState(defaultValue?.toString() ?? "")
 
@@ -185,6 +195,7 @@ const NumberRoot = ({children, onValueChange, digits = 2, min = null, max = null
             max,
             value,
             display,
+            ignoreOverflow,
             digits: digits < 0 ? 0 : digits,
             setValue,
             setDisplay,

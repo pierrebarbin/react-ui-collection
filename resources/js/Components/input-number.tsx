@@ -7,6 +7,7 @@ import { Button } from "./ui/button"
 
 export interface InputNumberProps extends NumberRootProps {
     className?: string
+    value?: number|null
 }
 
 const InputNumber = ({ children, className, ...props }: InputNumberProps) => {
@@ -57,9 +58,19 @@ const InputNumberDecrease = React.forwardRef<HTMLButtonElement, NumberActionProp
 )
 InputNumberDecrease.displayName = "InputNumberDecrease"
 
-const InputNumberInput = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, ...props }, ref) => {
-        const {display, updateValue} = useNumber()
+interface InputNumberInputProps extends Omit<InputProps, 'value'>{
+    value?: number|null
+}
+
+const InputNumberInput = React.forwardRef<HTMLInputElement, InputNumberInputProps>(
+    ({ className, value, ...props }, ref) => {
+        const {value: localValue, display, updateValue} = useNumber()
+
+        React.useEffect(() => {
+            if (value !== undefined && value !== localValue) {
+                updateValue(value ? value.toString() : "")
+            }
+        }, [value, localValue])
 
         const change = (e: React.ChangeEvent<HTMLInputElement>) => {
             updateValue(e.target.value)

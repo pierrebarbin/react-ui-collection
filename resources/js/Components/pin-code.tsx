@@ -57,7 +57,7 @@ const PinCodeInput = ({className, ...props}: PinCodeInputProps) => {
         handleChange,
         focusInput,
         focusNext,
-        focusPrevious
+        focusPrevious,
     } = usePinCode()
 
     React.useEffect(() => {
@@ -111,6 +111,31 @@ const PinCodeInput = ({className, ...props}: PinCodeInputProps) => {
         setDirection("next")
     }
 
+    const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        const pin = e.clipboardData.getData('Text').split('')
+
+        setInputs && setInputs((inputs) => {
+            const hasValue = inputs.find((input) => input.value !== null)
+
+            if (hasValue) {
+                return inputs
+            }
+
+            return inputs.map((input, i) => {
+                const value = typeof pin[i] === "undefined" ? null : pin[i]
+
+                if (i + 1 === pin.length) {
+                    focusInput(input?.id)
+                }
+
+                return {
+                    ...input,
+                    value: value ? parseInt(value) : null
+                }
+            })
+        })
+    }
+
     return (
         <InputNumber
             onValueChange={(newValue) => {
@@ -127,7 +152,9 @@ const PinCodeInput = ({className, ...props}: PinCodeInputProps) => {
                 ref={ref}
                 value={value}
                 onFocus={handleFocus}
+                onClick={handleFocus}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 className={cn(className, "focus:z-20")}
                 {...props}
             />
@@ -144,8 +171,21 @@ const PinCode = ({ children, className, digits = 4, onCompletion, ...props }: Pi
     const [focusedInput, setFocusedInput] = React.useState<Input|null>(null)
     const [inputs, setInputs] = React.useState<Input[]>([])
 
-    const focusInput = (id: string) => {
-        setFocusedInput(inputs.find((input) => input.id === id) ?? null)
+    const focusInput = (id: string|null) => {
+
+        const input = inputs.find((input) => input.id === id)
+        if (!input) {
+            setFocusedInput(null)
+            return
+        }
+
+        if (id === null) {
+            setFocusedInput(null)
+            return
+        }
+
+        setFocusedInput(input)
+        input.ref.current?.select()
     }
 
     const focusNext = () => {
@@ -158,6 +198,7 @@ const PinCode = ({ children, className, digits = 4, onCompletion, ...props }: Pi
 
             if (nextInput) {
                 nextInput.ref.current?.focus()
+                nextInput.ref.current?.select()
             }
         })
     }

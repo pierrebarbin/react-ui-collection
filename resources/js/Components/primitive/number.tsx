@@ -115,7 +115,7 @@ const useNumber = () => {
         }
 
         if (value === ".") {
-            renderValue({value: 0, display: ""})
+            renderValue({value: 0, display: "0."})
             return
         }
 
@@ -144,7 +144,7 @@ const useNumber = () => {
 
         const valueNumber = convertToNumber(value)
 
-        if (min !== null && valueNumber <= min) {
+        if (min !== null && valueNumber < min) {
             if (ignoreOverflow) {
                 return
             }
@@ -155,7 +155,7 @@ const useNumber = () => {
             return
         }
 
-        if (max !== null && valueNumber >= max) {
+        if (max !== null && valueNumber > max) {
             if (ignoreOverflow) {
                 return
             }

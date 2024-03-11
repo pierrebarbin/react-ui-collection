@@ -19,9 +19,9 @@ export default function App({ }: PageProps) {
                     <InputNumberDecrease className="absolute right-[45px] rounded top-1/2 -translate-y-1/2 z-20" />
                     <InputNumberIncrease className="absolute right-[3px] rounded top-1/2 -translate-y-1/2 z-20" />
                 </InputNumber>
-                <PinCode onCompletion={console.log}>
+                <PinCode onCompletion={console.log} className="gap-2">
                     {[...Array(4).keys()].map((input) => (
-                        <PinCodeInput key={input} />
+                        <PinCodeInput key={input} className="w-12 h-12 first:rounded-l last:rounded-r"/>
                     ))}
                 </PinCode>
             </div>

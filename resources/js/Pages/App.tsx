@@ -3,7 +3,12 @@ import { PageProps } from '@/types';
 import AppLayout from '@/Layouts/app-layout';
 import { InputNumber, InputNumberDecrease, InputNumberIncrease, InputNumberInput } from '@/Components/input-number';
 import { PinCode, PinCodeInput } from '@/Components/pin-code';
-import {EmojiPicker} from "@/Components/emoji-picker";
+import {
+    EmojiPicker,
+    EmojiPickerCategories, EmojiPickerContent,
+    EmojiPickerInput, EmojiPickerPopover, EmojiPickerPopoverContent,
+    EmojiPickerPopoverTrigger
+} from "@/Components/emoji-picker";
 
 export default function App({ }: PageProps) {
     return (
@@ -25,7 +30,16 @@ export default function App({ }: PageProps) {
                         <PinCodeInput key={input} className="w-12 h-12 first:rounded-l last:rounded-r"/>
                     ))}
                 </PinCode>
-                <EmojiPicker>e</EmojiPicker>
+                <EmojiPicker>
+                    <EmojiPickerPopover>
+                        <EmojiPickerPopoverTrigger>Test</EmojiPickerPopoverTrigger>
+                        <EmojiPickerPopoverContent align="start">
+                            <EmojiPickerInput />
+                            <EmojiPickerCategories />
+                            <EmojiPickerContent />
+                        </EmojiPickerPopoverContent>
+                    </EmojiPickerPopover>
+                </EmojiPicker>
             </div>
         </AppLayout>
     );

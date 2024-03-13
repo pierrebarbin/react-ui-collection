@@ -1,13 +1,12 @@
-import React, {ChangeEvent, ReactElement} from "react";
-import emoji from "@/Data/emoji.json"
+import React, {ChangeEvent, ReactElement, useDeferredValue} from "react";
 import Fuse from "fuse.js";
 import {Input} from "@/Components/ui/input";
 import {useVirtualizer} from "@tanstack/react-virtual";
 import {cn} from "@/lib/utils";
-import {Button} from "@/Components/ui/button";
-import {Popover, PopoverContent, PopoverContentProps, PopoverRef, PopoverTrigger} from "@/Components/ui/popover";
+import {Button, ButtonProps} from "@/Components/ui/button";
+import {ScrollArea, ScrollBar} from "@/Components/ui/scroll-area";
 
-interface Emoji {
+export interface Emoji {
     "code": string[],
     "emoji": string,
     "name": string,
@@ -18,6 +17,8 @@ interface Emoji {
 interface EmojiPickerContextType {
     emojis: Emoji[]
     allEmojis: Emoji[]
+    selectedCategory: string|null
+    selectEmoji: (emoji: Emoji) => void
     updateSearch: (value: string) => void
     updateCategory: (value: string|null) => void
 }
@@ -25,6 +26,8 @@ interface EmojiPickerContextType {
 const EmojiPickerContext = React.createContext<EmojiPickerContextType>({
     emojis: [],
     allEmojis: [],
+    selectedCategory: null,
+    selectEmoji: () => {},
     updateSearch: () => {},
     updateCategory: () => {},
 })
@@ -43,13 +46,17 @@ const useEmojiPicker = () => {
 
 interface EmojiPickerProps {
     children: ReactElement|ReactElement[]
+    source: Emoji[]
+    onEmojiSelected?: (emoji: Emoji) => void
 }
 
 const SCORE_THRESHOLD = 0.4
 
-const EmojiPicker = ({ children }: EmojiPickerProps) => {
+const EmojiPicker = ({ source, children, onEmojiSelected }: EmojiPickerProps) => {
     const [searchValue, setSearchValue] = React.useState('')
-    const [selectedCategory, setSelectedCategory] = React.useState<string|null>(null)
+    const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null)
+
+    const deferredSearchValue = useDeferredValue(searchValue);
 
     const fuse = React.useMemo(() => {
         const options = {
@@ -57,18 +64,18 @@ const EmojiPicker = ({ children }: EmojiPickerProps) => {
             keys: ["name"],
         }
 
-        return new Fuse(emoji.emojis, options)
+        return new Fuse(source, options)
     }, [])
 
     const searchResults = React.useMemo(() => {
-        if (!searchValue) {
-            return emoji.emojis
+        if (!deferredSearchValue) {
+            return source
         }
 
-        return fuse.search(searchValue)
+        return fuse.search(deferredSearchValue)
             .filter((fuseResult) => (fuseResult.score ?? 0) < SCORE_THRESHOLD)
             .map((fuseResult) => fuseResult.item)
-    }, [fuse, searchValue])
+    }, [fuse, deferredSearchValue])
 
     const emojis = React.useMemo(() => {
         if (!selectedCategory) {
@@ -78,42 +85,31 @@ const EmojiPicker = ({ children }: EmojiPickerProps) => {
         return searchResults.filter((emoji) => emoji.category === selectedCategory)
     }, [searchResults, selectedCategory])
 
-
     const updateSearch = (value: string) => {
         setSearchValue(value)
     }
 
-    const updateCategory = (value: string|null) => {
+    const updateCategory = (value: string | null) => {
         setSelectedCategory(value)
     }
 
+    const selectEmoji = (emoji: Emoji) => {
+        onEmojiSelected && onEmojiSelected(emoji)
+    }
+
     return (
-        <EmojiPickerContext.Provider value={{updateSearch, updateCategory, emojis, allEmojis: emoji.emojis,}}>
+        <EmojiPickerContext.Provider value={{
+            selectedCategory,
+            updateSearch,
+            updateCategory,
+            selectEmoji,
+            emojis,
+            allEmojis: source,
+        }}>
             {children}
         </EmojiPickerContext.Provider>
     )
 }
-
-const EmojiPickerPopover = Popover
-
-EmojiPickerPopover.displayName = "EmojiPickerPopover"
-
-const EmojiPickerPopoverTrigger = PopoverTrigger
-
-EmojiPickerPopoverTrigger.displayName = "EmojiPickerTrigger"
-
-export interface EmojiPickerContentPopoverProps
-    extends PopoverContentProps {}
-
-const EmojiPickerPopoverContent = React.forwardRef<PopoverRef, EmojiPickerContentPopoverProps>(
-({ children, className, ...props }, ref) => {
-    return (
-        <PopoverContent ref={ref} className={cn(className)} {...props}>
-            {children}
-        </PopoverContent>
-    )
-})
-EmojiPickerPopoverContent.displayName = "EmojiPickerContent"
 
 export interface EmojiPickerInputProps
     extends React.InputHTMLAttributes<HTMLInputElement> {}
@@ -131,18 +127,40 @@ const EmojiPickerInput = React.forwardRef<HTMLInputElement, EmojiPickerInputProp
         <Input
             ref={ref}
             onChange={handleChange}
+            placeholder="Search..."
             {...props}
         />
     )
 })
 EmojiPickerInput.displayName = "EmojiPickerInput"
 
+interface EmojiPickerCategoriesItemProps
+    extends ButtonProps {
+    category: string|null
+}
+
+const EmojiPickerCategoriesItem = React.forwardRef<HTMLButtonElement, EmojiPickerCategoriesItemProps>(
+    ({ children, category, ...props }, ref) => {
+        const { updateCategory } = useEmojiPicker()
+
+        return (
+            <Button
+                ref={ref}
+                onClick={() => updateCategory(category)}
+                {...props}
+            >
+                {children}
+            </Button>
+        )
+    })
+EmojiPickerCategoriesItem.displayName = "EmojiPickerCategoriesItem"
+
 export interface EmojiPickerCategoriesProps
     extends React.HTMLAttributes<HTMLDivElement> {}
 
 const EmojiPickerCategories = ({ className, ...props }: EmojiPickerCategoriesProps) => {
 
-    const { allEmojis, updateCategory } = useEmojiPicker()
+    const { allEmojis, selectedCategory} = useEmojiPicker()
 
     const categories = React.useMemo(() => {
         return allEmojis
@@ -153,23 +171,26 @@ const EmojiPickerCategories = ({ className, ...props }: EmojiPickerCategoriesPro
     }, [])
 
     return (
-        <div className={cn(className, "flex gap-1")} {...props}>
-            <Button
-                variant="ghost"
-                onClick={() => updateCategory(null)}
-            >
-                All
-            </Button>
-            {categories.map((category) => (
-                <Button
-                    variant="ghost"
-                    key={category}
-                    onClick={() => updateCategory(category)}
+        <ScrollArea className="w-full whitespace-nowrap">
+            <div className={cn(className, "flex gap-1 p-1 pb-3")} {...props}>
+                <EmojiPickerCategoriesItem
+                    category={null}
+                    variant={selectedCategory === null ? "secondary" : "ghost"}
                 >
-                    {category}
-                </Button>
-            ))}
-        </div>
+                    All
+                </EmojiPickerCategoriesItem>
+                {categories.map((category) => (
+                    <EmojiPickerCategoriesItem
+                        category={category}
+                        variant={selectedCategory === category ? "secondary" : "ghost"}
+                        key={category}
+                    >
+                        {category}
+                    </EmojiPickerCategoriesItem>
+                ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
     )
 }
 EmojiPickerCategories.displayName = "EmojiPickerCategories"
@@ -177,15 +198,15 @@ EmojiPickerCategories.displayName = "EmojiPickerCategories"
 interface EmojiPickerContentProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 const EmojiPickerContent = ({ className, ...props }: EmojiPickerContentProps) => {
-    const [width, setWidth] = React.useState(0)
+    const [containerWidth, setContainerWidth] = React.useState(0)
 
     const parentRef = React.useRef<HTMLDivElement>(null)
 
-    const { emojis } = useEmojiPicker()
+    const { emojis, selectEmoji } = useEmojiPicker()
 
     const height = 50
-    const ewidth = 50
-    const columns = Math.ceil((width) / ewidth) - 1
+    const width = 50
+    const columns = Math.ceil((containerWidth) / width) - 1
     const rows = Math.round(emojis.length / columns)
 
     const rowVirtualizer = useVirtualizer({
@@ -199,25 +220,29 @@ const EmojiPickerContent = ({ className, ...props }: EmojiPickerContentProps) =>
         horizontal: true,
         count: columns,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => ewidth,
+        estimateSize: () => width,
         overscan: 5,
     })
 
     React.useEffect(() => {
         if (parentRef.current?.clientWidth) {
-            setWidth(parentRef.current?.clientWidth)
+            setContainerWidth(parentRef.current?.clientWidth)
         }
-    }, [parentRef])
+    }, [])
+
+    React.useEffect(() => {
+        parentRef.current?.scrollTo(0, 0);
+    }, [emojis])
 
     return (
         <div
             ref={parentRef}
-            className={cn(className, "h-96 w-full overflow-x-hidden overflow-y-auto")}
+            className={cn(className, "h-80 w-full overflow-x-hidden overflow-y-auto")}
         >
             <div
                 className="relative mx-auto"
                 style={{
-                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    height: `${rowVirtualizer.getTotalSize() + 4 }px`,
                     width: `${columnVirtualizer.getTotalSize()}px`,
                 }}
             >
@@ -234,14 +259,12 @@ const EmojiPickerContent = ({ className, ...props }: EmojiPickerContentProps) =>
                                 <Button
                                     variant="ghost"
                                     key={virtualColumn.key}
-                                    className="flex justify-center items-center text-3xl"
+                                    onClick={() => selectEmoji(emoji)}
+                                    className="absolute flex justify-center items-center text-3xl top-0 left-0"
                                     style={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
                                         width: `${virtualColumn.size}px`,
                                         height: `${virtualRow.size}px`,
-                                        transform: `translateX(${virtualColumn.start}px) translateY(${virtualRow.start}px)`,
+                                        transform: `translateX(${virtualColumn.start}px) translateY(${virtualRow.start + 2}px)`,
                                     }}
                                 >
                                     {emoji.emoji}
@@ -254,5 +277,6 @@ const EmojiPickerContent = ({ className, ...props }: EmojiPickerContentProps) =>
         </div>
     )
 }
+EmojiPickerContent.displayName = "EmojiPickerContent"
 
-export {EmojiPicker, EmojiPickerPopover, EmojiPickerPopoverTrigger, EmojiPickerPopoverContent, EmojiPickerInput, EmojiPickerCategories, EmojiPickerContent}
+export {EmojiPicker, EmojiPickerInput, EmojiPickerCategories, EmojiPickerCategoriesItem, EmojiPickerContent}

@@ -4,13 +4,31 @@ import AppLayout from '@/Layouts/app-layout';
 import { InputNumber, InputNumberDecrease, InputNumberIncrease, InputNumberInput } from '@/Components/input-number';
 import { PinCode, PinCodeInput } from '@/Components/pin-code';
 import {
+    Emoji,
     EmojiPicker,
     EmojiPickerCategories, EmojiPickerContent,
-    EmojiPickerInput, EmojiPickerPopover, EmojiPickerPopoverContent,
-    EmojiPickerPopoverTrigger
+    EmojiPickerInput
 } from "@/Components/emoji-picker";
+import {Popover, PopoverContent, PopoverTrigger} from "@/Components/ui/popover";
+import {useState} from "react";
+import {Button} from "@/Components/ui/button";
+import emoji from "@/Data/emoji.json"
+import {
+    Drawer, DrawerClose,
+    DrawerContent,
+    DrawerDescription, DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerTrigger
+} from "@/Components/ui/drawer";
 
 export default function App({ }: PageProps) {
+    const [emoji1, setEmoji1] = useState<Emoji|null>(null)
+    const [openEmoji1, setOpenEmoji1] = useState(false)
+
+    const [emoji2, setEmoji2] = useState<Emoji|null>(null)
+    const [openEmoji2, setOpenEmoji2] = useState(false)
+
     return (
         <AppLayout>
             <Head title="Welcome" />
@@ -30,15 +48,41 @@ export default function App({ }: PageProps) {
                         <PinCodeInput key={input} className="w-12 h-12 first:rounded-l last:rounded-r"/>
                     ))}
                 </PinCode>
-                <EmojiPicker>
-                    <EmojiPickerPopover>
-                        <EmojiPickerPopoverTrigger>Test</EmojiPickerPopoverTrigger>
-                        <EmojiPickerPopoverContent align="start">
+                <EmojiPicker source={emoji.emojis} onEmojiSelected={(emoji) => {
+                    setEmoji1(emoji)
+                    setOpenEmoji1(false)
+                }}>
+                    <Popover open={openEmoji1} onOpenChange={setOpenEmoji1}>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline">
+                                {emoji1 ? emoji1.emoji : "Emoji Popover"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" side="right">
                             <EmojiPickerInput />
                             <EmojiPickerCategories />
                             <EmojiPickerContent />
-                        </EmojiPickerPopoverContent>
-                    </EmojiPickerPopover>
+                        </PopoverContent>
+                    </Popover>
+                </EmojiPicker>
+                <EmojiPicker source={emoji.emojis} onEmojiSelected={(emoji) => {
+                    setEmoji2(emoji)
+                    setOpenEmoji2(false)
+                }}>
+                    <Drawer open={openEmoji2} onOpenChange={setOpenEmoji2}>
+                        <DrawerTrigger asChild>
+                            <Button variant="outline">
+                                {emoji2 ? emoji2.emoji : "Emoji Drawer"}
+                            </Button>
+                        </DrawerTrigger>
+                        <DrawerContent>
+                            <div className="mx-auto w-full max-w-sm">
+                                <EmojiPickerInput />
+                                <EmojiPickerCategories />
+                                <EmojiPickerContent />
+                            </div>
+                        </DrawerContent>
+                    </Drawer>
                 </EmojiPicker>
             </div>
         </AppLayout>

@@ -60,10 +60,14 @@ InputNumberDecrease.displayName = "InputNumberDecrease"
 
 interface InputNumberInputProps extends Omit<InputProps, 'value'>{
     value?: number|null
+    step?: number
 }
 
 const InputNumberInput = React.forwardRef<HTMLInputElement, InputNumberInputProps>(
-    ({ className, value, ...props }, ref) => {
+    ({ className, value, step = 1, ...props }, ref) => {
+        const [focused, setFocused] = React.useState(false)
+        const [hovered, setHovered] = React.useState(false)
+
         const {value: localValue, display, updateValue} = useNumber()
 
         React.useEffect(() => {
@@ -72,8 +76,69 @@ const InputNumberInput = React.forwardRef<HTMLInputElement, InputNumberInputProp
             }
         }, [value, localValue])
 
+        React.useEffect(() => {
+            if (!hovered || !focused) {
+                return
+            }
+
+            const handleScroll = (e: React.WheelEvent) => {
+                e.preventDefault()
+
+                if (e.deltaY > 0) {
+                    updateValue(((localValue ?? 0) + step).toString())
+                    return
+                }
+                updateValue(((localValue ?? 0) - step).toString())
+            }
+
+            let supportsPassive = false;
+            try {
+                window.addEventListener("scroll", () => {}, Object.defineProperty({}, 'passive', {
+                    get: function () { supportsPassive = true; }
+                }));
+            } catch(e) {}
+
+            const wheelOpt = supportsPassive ? { passive: false } : false;
+            const wheelEvent = 'onwheel' in document.createElement('div') ? 'wheel' : 'mousewheel';
+
+            // @ts-ignore
+            window.addEventListener('DOMMouseScroll', handleScroll, false); // older FF
+            // @ts-ignore
+            window.addEventListener(wheelEvent, handleScroll, wheelOpt); // modern desktop
+            // @ts-ignore
+            window.addEventListener('touchmove', handleScroll, wheelOpt); // mobile
+
+            return () => {
+                // @ts-ignore
+                window.removeEventListener('DOMMouseScroll', handleScroll, false);
+                // @ts-ignore
+                window.removeEventListener(wheelEvent, handleScroll, wheelOpt);
+                // @ts-ignore
+                window.removeEventListener('touchmove', handleScroll, wheelOpt);
+                window.removeEventListener("scroll", () => {}, Object.defineProperty({}, 'passive', {
+                    get: function () { supportsPassive = true; }
+                }));
+            }
+        }, [focused, hovered, localValue, step])
+
         const change = (e: React.ChangeEvent<HTMLInputElement>) => {
             updateValue(e.target.value)
+        }
+
+        const handleFocus = () => {
+            setFocused(true)
+        }
+
+        const handleBlur = () => {
+            setFocused(false)
+        }
+
+        const handleMouseEnter = () => {
+            setHovered(true)
+        }
+
+        const handleMouseLeave = () => {
+            setHovered(false)
         }
 
         return (
@@ -82,6 +147,10 @@ const InputNumberInput = React.forwardRef<HTMLInputElement, InputNumberInputProp
                 className={cn("w-20 text-center rounded-none z-10", className)}
                 value={display}
                 onChange={change}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
                 {...props}
             />
         )

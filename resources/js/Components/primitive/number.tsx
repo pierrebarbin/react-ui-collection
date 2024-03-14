@@ -1,8 +1,5 @@
 import React from "react";
 
-import { ButtonProps } from "../ui/button";
-import { Slot } from "@radix-ui/react-slot";
-
 type NumberContextType = {
     value: number|null,
     display: string
@@ -11,6 +8,8 @@ type NumberContextType = {
     digits: number
     min: number|null
     max: number|null
+    decorationSymbol: string
+    decoration?: string
     onValueChange?: (value: number|null) => void
     ignoreOverflow?: boolean
 }
@@ -22,7 +21,9 @@ const NumberContext = React.createContext<NumberContextType>({
     setDisplay: null,
     digits: 2,
     min: null,
+    decorationSymbol: "xxx",
     max: null,
+    decoration: undefined,
     onValueChange: undefined,
     ignoreOverflow: false
 });
@@ -40,6 +41,8 @@ const useNumber = () => {
         min,
         max,
         digits,
+        decoration,
+        decorationSymbol,
         ignoreOverflow,
         setDisplay,
         setValue,
@@ -69,12 +72,24 @@ const useNumber = () => {
 
 
     const renderValue = ({value, display}: {value: number|null, display: string}) => {
+        if (decoration && display !== "") {
+            display = decoration.replace(decorationSymbol, display)
+        }
         setDisplay && setDisplay(display)
         setValue && setValue(value)
         onValueChange && onValueChange(value)
     }
 
     const updateValue = (value: string ) => {
+        if (decoration) {
+            decoration.split(decorationSymbol).forEach((part) => {
+                if (part === "") {
+                    return
+                }
+                value = value.replace(part, '')
+            })
+        }
+
         if (value === "") {
             renderValue({value: null, display: ""})
             return
@@ -181,11 +196,23 @@ export interface NumberRootProps {
     digits?: number
     min?: number|null
     max?: number|null
+    decoration?: string
+    decorationSymbol?: string
     defaultValue?: number|null
     ignoreOverflow?: boolean
 }
 
-const NumberRoot = ({children, onValueChange, digits = 2, min = null, max = null, defaultValue = null, ignoreOverflow = false}: NumberRootProps) => {
+const NumberRoot = ({
+    children,
+    onValueChange,
+    digits = 2,
+    decoration,
+    decorationSymbol = "xxx",
+    min = null,
+    max = null,
+    defaultValue = null,
+    ignoreOverflow = false
+}: NumberRootProps) => {
     const [value, setValue] = React.useState<number|null>(defaultValue)
     const [display, setDisplay] = React.useState(defaultValue?.toString() ?? "")
 
@@ -195,6 +222,8 @@ const NumberRoot = ({children, onValueChange, digits = 2, min = null, max = null
             max,
             value,
             display,
+            decoration,
+            decorationSymbol,
             ignoreOverflow,
             digits: digits < 0 ? 0 : digits,
             setValue,
@@ -207,44 +236,4 @@ const NumberRoot = ({children, onValueChange, digits = 2, min = null, max = null
 }
 NumberRoot.displayName = "NumberRoot"
 
-export interface NumberActionProps extends ButtonProps {
-    order?: "increase"|"decrease"
-    offset?: number
-}
-
-const NumberAction = React.forwardRef<HTMLButtonElement, NumberActionProps>(
-        ({ onClick, order = "increase", offset = 1, ...props }, ref) => {
-
-            const {value, updateValue, convertToString} = useNumber()
-
-            const calculate = (value: number) => {
-                if (order === "increase") {
-                    value = value + offset
-                }
-
-                if (order === "decrease") {
-                    value = value - offset
-                }
-
-                return value
-            }
-
-            const onClicked = (e: React.MouseEvent<HTMLButtonElement>) => {
-                const calculated = calculate(value ?? 0)
-
-                updateValue(convertToString(calculated))
-                onClick && onClick(e)
-            }
-
-            return (
-                <Slot
-                    ref={ref}
-                    {...props}
-                    onClick={onClicked}
-                />
-            )
-        }
-  )
-NumberAction.displayName = "NumberAction"
-
-export {NumberRoot, NumberAction, useNumber}
+export {NumberRoot, useNumber}

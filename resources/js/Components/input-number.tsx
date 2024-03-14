@@ -1,9 +1,9 @@
 import { MinusIcon, PlusIcon } from "@radix-ui/react-icons"
-import { NumberRoot, NumberAction, NumberRootProps, NumberActionProps, useNumber } from "./primitive/number"
+import { NumberRoot, NumberRootProps, useNumber } from "./primitive/number"
 import React from "react"
 import { cn } from "@/lib/utils"
 import { Input, InputProps } from "./ui/input"
-import { Button } from "./ui/button"
+import {Button, ButtonProps} from "./ui/button"
 
 export interface InputNumberProps extends NumberRootProps {
     className?: string
@@ -21,38 +21,80 @@ const InputNumber = ({ children, className, ...props }: InputNumberProps) => {
 }
 InputNumber.displayName = "InputNumber"
 
-const InputNumberIncrease = React.forwardRef<HTMLButtonElement, NumberActionProps>(
-    ({ children, className, ...props }, ref) => {
+export interface InputNumberActionProps extends ButtonProps {
+    order: "increase"|"decrease"
+    step?: number
+}
+
+const InputNumberAction = React.forwardRef<HTMLButtonElement, InputNumberActionProps>(
+    ({ children, onClick, order, step= 1, ...props }, ref) => {
+        const {value, updateValue, convertToString} = useNumber()
+
+        const calculate = (value: number) => {
+            if (order === "increase") {
+                value = value + step
+            }
+
+            if (order === "decrease") {
+                value = value - step
+            }
+
+            return value
+        }
+
+        const handleClicked = (e: React.MouseEvent<HTMLButtonElement>) => {
+            const calculated = calculate(value ?? 0)
+
+            updateValue(convertToString(calculated))
+            onClick && onClick(e)
+        }
+
         return (
-            <NumberAction
+            <Button
                 ref={ref}
                 size="icon"
                 variant="outline"
                 {...props}
+                onClick={handleClicked}
             >
-                <Button className={cn("py-2 px-3 h-auto w-auto rounded-l-none", className)}>
-                    {children ? children : <PlusIcon className="w-3 h-3" />}
-                </Button>
-            </NumberAction>
+                {children}
+            </Button>
+        )
+    }
+)
+InputNumberAction.displayName = "InputNumberIncrease"
+
+type InputNumberIncreaseProps = Omit<InputNumberActionProps, 'order'>
+
+const InputNumberIncrease = React.forwardRef<HTMLButtonElement, InputNumberIncreaseProps>(
+    ({ children, className, ...props }, ref) => {
+        return (
+            <InputNumberAction
+                ref={ref}
+                order="increase"
+                className={cn("py-2 px-3 h-auto w-auto", className)}
+                {...props}
+            >
+                {children ? children : <PlusIcon className="w-3 h-3" />}
+            </InputNumberAction>
         )
     }
 )
 InputNumberIncrease.displayName = "InputNumberIncrease"
 
-const InputNumberDecrease = React.forwardRef<HTMLButtonElement, NumberActionProps>(
+type InputNumberDecreaseProps = Omit<InputNumberActionProps, 'order'>
+
+const InputNumberDecrease = React.forwardRef<HTMLButtonElement, InputNumberDecreaseProps>(
     ({ children, className, ...props }, ref) => {
         return (
-            <NumberAction
+            <InputNumberAction
                 ref={ref}
-                size="icon"
-                variant="outline"
                 order="decrease"
+                className={cn("py-2 px-3 h-auto w-auto", className)}
                 {...props}
             >
-                <Button className={cn("py-2 px-3 h-auto w-auto rounded-r-none", className)}>
-                    {children ? children : <MinusIcon className="w-3 h-3" />}
-                </Button>
-            </NumberAction>
+                {children ? children : <MinusIcon className="w-3 h-3" />}
+            </InputNumberAction>
         )
     }
 )
@@ -158,4 +200,4 @@ const InputNumberInput = React.forwardRef<HTMLInputElement, InputNumberInputProp
 )
 InputNumberInput.displayName = "InputNumberInput"
 
-export {InputNumber, InputNumberInput, InputNumberIncrease, InputNumberDecrease}
+export {InputNumber, InputNumberInput, InputNumberAction, InputNumberIncrease, InputNumberDecrease}

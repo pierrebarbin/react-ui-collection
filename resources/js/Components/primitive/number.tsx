@@ -28,35 +28,37 @@ const NumberContext = React.createContext<NumberContextType>({
     ignoreOverflow: false
 });
 
-const useNumber = () => {
-    const numberContext = React.useContext(NumberContext)
+interface NumberType {
+    digits: number
+    min?: number|null
+    max?: number|null
+    decorationSymbol?: string
+    setValue?: React.Dispatch<React.SetStateAction<number|null>>|null
+    setDisplay?: React.Dispatch<React.SetStateAction<string>>|null
+    decoration?: string
+    onValueChange?: (value: number|null) => void
+    ignoreOverflow?: boolean
+}
 
-    if (!numberContext) {
-        throw new Error(
-          "useNumber has to be used within <NumberContext.Provider>"
-        )
-    }
-
-    const {
-        min,
-        max,
-        digits,
-        decoration,
-        decorationSymbol,
-        ignoreOverflow,
-        setDisplay,
-        setValue,
-        onValueChange
-    } = numberContext
-
+const useNumber = ({
+   min = null,
+   max = null,
+   digits,
+   decoration,
+   decorationSymbol = "xxx",
+   ignoreOverflow = false,
+   setDisplay,
+   setValue,
+   onValueChange
+}: NumberType) => {
     const convertToNumber = (value: number|string) => {
         if (typeof value === 'string') {
             value = parseFloat(value)
         }
 
-        const digits = Math.pow(10, numberContext.digits)
+        const d = Math.pow(10, digits)
 
-        return Math.round(value * digits) / digits
+        return Math.round(value * d) / d
     }
 
     const convertToString = (value: number|string) => {
@@ -78,6 +80,8 @@ const useNumber = () => {
         setDisplay && setDisplay(display)
         setValue && setValue(value)
         onValueChange && onValueChange(value)
+
+        return {value, display}
     }
 
     const updateValue = (value: string ) => {
@@ -91,8 +95,7 @@ const useNumber = () => {
         }
 
         if (value === "") {
-            renderValue({value: null, display: ""})
-            return
+            return renderValue({value: null, display: ""})
         }
 
         let digitsRegex = ""
@@ -115,7 +118,7 @@ const useNumber = () => {
         const result = regex.exec(value)
 
         if (result === null) {
-            return
+            return {value: null, display: ""}
         }
 
         const isInvalid = result[0] !== result?.input
@@ -126,68 +129,77 @@ const useNumber = () => {
                 onValueChange && onValueChange(old)
                 return old
             })
-            return
+            // Probably wrong
+            return {value: null, display: ""}
         }
 
         if (value === ".") {
-            renderValue({value: 0, display: "0."})
-            return
+            return renderValue({value: 0, display: "0."})
         }
 
         if (value === "-") {
             if (min !== null && 0 <= min) {
-                renderValue({
+                return renderValue({
                     value: convertToNumber(min),
                     display: convertToString(min)
                 })
-                return
             }
-            renderValue({
+            return renderValue({
                 value: null,
                 display: "-"
             })
-            return
         }
 
         if (value === "-0" || value === "-0.") {
-            renderValue({
+            return renderValue({
                 value: 0,
                 display: value
             })
-            return
         }
 
         const valueNumber = convertToNumber(value)
 
         if (min !== null && valueNumber < min) {
             if (ignoreOverflow) {
-                return
+                // Probably wrong
+                return {value: null, display: ""}
             }
-            renderValue({
+            return renderValue({
                 value: convertToNumber(min),
                 display: convertToString(min)
             })
-            return
         }
 
         if (max !== null && valueNumber > max) {
             if (ignoreOverflow) {
-                return
+                // Probably wrong
+                return {value: null, display: ""}
             }
-            renderValue({
+            return renderValue({
                 value: convertToNumber(max),
                 display: convertToString(max)
             })
-            return
         }
 
-        renderValue({
+        return renderValue({
             value: valueNumber,
             display: convertToString(value)
         })
     }
 
-    return {...numberContext, convertToNumber, convertToString, updateValue}
+    return {convertToNumber, convertToString, updateValue}
+}
+
+const useNumberContext = () => {
+    const numberContext = React.useContext(NumberContext)
+
+    if (!numberContext) {
+        throw new Error(
+            "useNumberContext has to be used within <NumberContext.Provider>"
+        )
+    }
+
+    return {...numberContext, ...useNumber(numberContext)}
 }
 
 export interface NumberRootProps {
@@ -236,4 +248,4 @@ const NumberRoot = ({
 }
 NumberRoot.displayName = "NumberRoot"
 
-export {NumberRoot, useNumber}
+export {NumberRoot, useNumber, useNumberContext}

@@ -1,5 +1,5 @@
 import { MinusIcon, PlusIcon } from "@radix-ui/react-icons"
-import { NumberRoot, NumberRootProps, useNumber } from "./primitive/number"
+import {NumberRoot, NumberRootProps, useNumberContext} from "./primitive/number"
 import React from "react"
 import { cn } from "@/lib/utils"
 import { Input, InputProps } from "./ui/input"
@@ -28,7 +28,7 @@ export interface InputNumberActionProps extends ButtonProps {
 
 const InputNumberAction = React.forwardRef<HTMLButtonElement, InputNumberActionProps>(
     ({ children, onClick, order, step= 1, ...props }, ref) => {
-        const {value, updateValue, convertToString} = useNumber()
+        const {value, updateValue, convertToString} = useNumberContext()
 
         const calculate = (value: number) => {
             if (order === "increase") {
@@ -110,7 +110,7 @@ const InputNumberInput = React.forwardRef<HTMLInputElement, InputNumberInputProp
         const [focused, setFocused] = React.useState(false)
         const [hovered, setHovered] = React.useState(false)
 
-        const {value: localValue, display, updateValue} = useNumber()
+        const {value: localValue, display, updateValue} = useNumberContext()
 
         React.useEffect(() => {
             if (value !== undefined && value !== localValue) {

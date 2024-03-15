@@ -21,6 +21,7 @@ import {
     DrawerTitle,
     DrawerTrigger
 } from "@/Components/ui/drawer";
+import {InputPattern} from "@/Components/input-pattern";
 
 export default function App({ }: PageProps) {
     const [emoji1, setEmoji1] = useState<Emoji|null>(null)
@@ -34,9 +35,9 @@ export default function App({ }: PageProps) {
             <Head title="Welcome" />
             <div className="space-y-6">
                 <InputNumber digits={2} min={-1} max={9000} >
-                    <InputNumberDecrease />
+                    <InputNumberDecrease className="rounded-r-none"/>
                     <InputNumberInput />
-                    <InputNumberIncrease />
+                    <InputNumberIncrease className="rounded-l-none"/>
                 </InputNumber>
                 <InputNumber className="relative">
                     <InputNumberInput className="w-full text-left rounded"/>
@@ -84,6 +85,7 @@ export default function App({ }: PageProps) {
                         </DrawerContent>
                     </Drawer>
                 </EmojiPicker>
+                <InputPattern pattern="xx/xx/xxxx" />
             </div>
         </AppLayout>
     );
